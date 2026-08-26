@@ -15,21 +15,17 @@ motion-light-plus/
 └── README.md
 ```
 
-Der Blueprint kann in Home Assistant direkt von GitHub importiert werden. Verwende dafür nach dem Hochladen die GitHub-Datei-URL:
+Der Blueprint kann in Home Assistant direkt von GitHub importiert werden. Verwende dafür die GitHub-Datei-URL:
 
 ```text
-https://github.com/<USER>/<REPO>/blob/main/blueprints/automation/motion_light_plus.yaml
+https://github.com/vandecook/motion-light-plus/blob/main/blueprints/automation/motion_light_plus.yaml
 ```
 
 Alternativ funktioniert auch die Raw-URL:
 
 ```text
-https://raw.githubusercontent.com/<USER>/<REPO>/main/blueprints/automation/motion_light_plus.yaml
+https://raw.githubusercontent.com/vandecook/motion-light-plus/main/blueprints/automation/motion_light_plus.yaml
 ```
-
-> `<USER>` und `<REPO>` durch deinen GitHub-Benutzernamen bzw. Repository-Namen ersetzen.
-
-
 ## 🏷️ Version
 
 Aktuelle Version: **v1.0.0**
