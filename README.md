@@ -2,6 +2,8 @@
 
 Ein Home-Assistant-Automation-Blueprint für robuste Bewegungs-/Präsenzlichtsteuerung mit mehreren Sensoren, optionalem Lux-Sensor, Nachtbetrieb, optionaler Farbtemperatur, Overrides, Putzmodus, Restart-Fallback und Watchdog.
 
+🔗 **Repository:** `vandecook/motion-light-plus`
+
 
 ## 📦 GitHub-Struktur
 
@@ -15,7 +17,9 @@ motion-light-plus/
 └── README.md
 ```
 
-Der Blueprint kann in Home Assistant direkt von GitHub importiert werden. Verwende dafür die GitHub-Datei-URL:
+Der Blueprint kann in Home Assistant direkt aus diesem GitHub-Repository importiert werden.
+
+GitHub-Datei-URL:
 
 ```text
 https://github.com/vandecook/motion-light-plus/blob/main/blueprints/automation/motion_light_plus.yaml
@@ -26,9 +30,12 @@ Alternativ funktioniert auch die Raw-URL:
 ```text
 https://raw.githubusercontent.com/vandecook/motion-light-plus/main/blueprints/automation/motion_light_plus.yaml
 ```
+
+
+
 ## 🏷️ Version
 
-Aktuelle Version: **v1.0.0**
+Aktuelle Version: **v1.1.1**
 
 Die Versionsnummer folgt [Semantic Versioning](https://semver.org/):
 
@@ -36,14 +43,14 @@ Die Versionsnummer folgt [Semantic Versioning](https://semver.org/):
 - **MINOR** – neue, rückwärtskompatible Funktionen
 - **PATCH** – Fehlerbehebungen und kleine Korrekturen
 
-Für GitHub-Releases empfiehlt sich derselbe Tag, z. B. `v1.0.0`.
+Für GitHub-Releases empfiehlt sich derselbe Tag, z. B. `v1.1.1`.
 
 ## ✨ Funktionsumfang
 
 - Ein oder mehrere Bewegungs-/Präsenzsensoren
 - Licht an, sobald mindestens ein ausgewählter Sensor Bewegung meldet
 - Ausschalten erst, wenn nach dem letzten `off`-Ereignis die Nachlaufzeit abgelaufen ist **und alle** ausgewählten Sensoren weiterhin `off` sind
-- Optionaler Helligkeitssensor mit Lux-Grenzwert
+- Optionaler Helligkeitssensor mit **Tages-Lux-Grenzwert**
 - Konfigurierbare Tageshelligkeit
 - Optionaler Nachtmodus mit eigener Helligkeit und Zeitfenster, auch über Mitternacht
 - Optional konfigurierbare Farbtemperatur in Kelvin für Tag, Nacht, Dauerlicht und Putzmodus
@@ -71,11 +78,14 @@ Die Ausschaltlogik verwendet bewusst keinen einfachen `for:`-Trigger pro Sensor.
 
 ## ☀️ Helligkeitssensor
 
-Der Lux-Sensor ist optional.
+Der Lux-Sensor ist optional und wird **nur im Tagesbetrieb** ausgewertet.
 
 - Kein Sensor ausgewählt: Lux-Prüfung wird übersprungen.
-- Sensor ausgewählt: Das Licht wird bei Bewegung nur eingeschaltet, wenn der Wert unter dem eingestellten Grenzwert liegt.
-- Sensor liefert `unknown` oder `unavailable`: Das Licht wird durch Bewegung nicht eingeschaltet, bis wieder ein gültiger Messwert vorliegt.
+- Tagsüber: Das Licht wird bei Bewegung nur eingeschaltet, wenn der Wert unter dem eingestellten Tages-Lux-Grenzwert liegt.
+- Nachtmodus aktiv: Die Lux-Prüfung wird bewusst übersprungen; Bewegung kann das gedimmte Nachtlicht unabhängig vom Lux-Wert einschalten.
+- Sensor liefert tagsüber `unknown` oder `unavailable`: Das Licht wird durch Bewegung nicht eingeschaltet, bis wieder ein gültiger Messwert vorliegt.
+
+Beispiel: Bei `150 lx` als Grenzwert bleibt das Licht tagsüber ab 150 lx aus. Im definierten Nachtzeitfenster greift stattdessen die Nacht-Helligkeit.
 
 ## 🌙 Nachtmodus
 
@@ -188,7 +198,7 @@ Für einen Flur könnte eine Instanz etwa so eingestellt werden:
 Bewegungsmelder:        PIR Eingang + PIR Gang
 Licht:                  light.flur
 Lux-Sensor:             sensor.flur_illuminance
-Lux-Grenze:             80 lx
+Tages-Lux-Grenze:      80 lx
 Tag-Helligkeit:         100 %
 Nachtzeit:              22:00–06:00
 Nacht-Helligkeit:       20 %

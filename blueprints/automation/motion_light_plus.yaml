@@ -1,15 +1,39 @@
 # Motion Light Plus
-# Version: 1.0.0
+# Version: 1.1.1
 # License: MIT
 
 blueprint:
   name: Motion Light Plus - Smart Motion Lighting
-  description: >-
-    Flexible motion-controlled light automation with one or more motion sensors,
-    optional illuminance control, night dimming, optional color temperature,
-    permanent-light override, cleaning mode, automation-disable switch,
-    restart fallback and watchdog safety shutdown.
+  description: |
+    Motion Light Plus is a configurable motion/presence lighting automation for
+    everyday rooms such as hallways, stairs, bathrooms, utility rooms or garages.
+
+    Core behavior:
+    • One or more motion/presence sensors can switch the light on.
+    • The switch-off delay starts after motion ends and the light is only switched
+      off when all configured motion sensors are still inactive.
+    • An optional illuminance sensor can suppress switching on during the day when
+      the room is already bright enough. The lux check is intentionally ignored
+      during the configured night period.
+    • Day and night brightness can be configured independently.
+    • Optional color temperature can be configured separately for day, night,
+      permanent-light override and cleaning mode.
+
+    Optional overrides:
+    • Permanent-light override keeps the light on until the override is released.
+    • Cleaning mode switches the light to 100% for a configurable period.
+    • Automation-disable leaves the light completely untouched for manual control.
+
+    Reliability:
+    • A restart fallback handles lights that were already on when Home Assistant
+      restarts and a previous delay was lost.
+    • A watchdog can switch off a light that remains on without motion for an
+      unusually long time.
+
+    Priority: automation disabled > permanent light > cleaning mode > motion
+    automation > watchdog.
   domain: automation
+  source_url: https://github.com/vandecook/motion-light-plus/blob/main/blueprints/automation/motion_light_plus.yaml
   homeassistant:
     min_version: 2024.6.0
 
