@@ -35,7 +35,7 @@ https://raw.githubusercontent.com/vandecook/motion-light-plus/main/blueprints/au
 
 ## 🏷️ Version
 
-Aktuelle Version: **v1.1.1**
+Aktuelle Version: **v1.1.2**
 
 Die Versionsnummer folgt [Semantic Versioning](https://semver.org/):
 
@@ -43,7 +43,7 @@ Die Versionsnummer folgt [Semantic Versioning](https://semver.org/):
 - **MINOR** – neue, rückwärtskompatible Funktionen
 - **PATCH** – Fehlerbehebungen und kleine Korrekturen
 
-Für GitHub-Releases empfiehlt sich derselbe Tag, z. B. `v1.1.1`.
+Für GitHub-Releases empfiehlt sich derselbe Tag, z. B. `v1.1.2`.
 
 ## ✨ Funktionsumfang
 

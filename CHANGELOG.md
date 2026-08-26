@@ -2,6 +2,14 @@
 
 Alle relevanten Änderungen an diesem Blueprint werden hier dokumentiert.
 
+## [1.1.2] - 2026-08-26
+
+### Geändert
+
+- Blueprint-Beschreibung visuell überarbeitet und klarer strukturiert
+- Vollständige Kurzbeschreibung in Deutsch und Englisch ergänzt
+- Grundfunktion, optionale Betriebsarten, Sicherheitslogik und Prioritäten direkt in der Blueprint-Beschreibung verständlicher dargestellt
+
 ## [1.1.1] - 2026-08-26
 
 ### Geändert

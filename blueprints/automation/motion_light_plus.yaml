@@ -1,37 +1,71 @@
 # Motion Light Plus
-# Version: 1.1.1
+# Version: 1.1.2
 # License: MIT
 
 blueprint:
   name: Motion Light Plus - Smart Motion Lighting
   description: |
-    Motion Light Plus is a configurable motion/presence lighting automation for
-    everyday rooms such as hallways, stairs, bathrooms, utility rooms or garages.
+    🇩🇪 **Deutsch**
 
-    Core behavior:
-    • One or more motion/presence sensors can switch the light on.
-    • The switch-off delay starts after motion ends and the light is only switched
-      off when all configured motion sensors are still inactive.
-    • An optional illuminance sensor can suppress switching on during the day when
-      the room is already bright enough. The lux check is intentionally ignored
-      during the configured night period.
-    • Day and night brightness can be configured independently.
-    • Optional color temperature can be configured separately for day, night,
-      permanent-light override and cleaning mode.
+    Motion Light Plus ist ein flexibler Blueprint für eine alltagstaugliche
+    Bewegungs- und Präsenzlichtsteuerung. Er eignet sich zum Beispiel für Flure,
+    Stiegenhäuser, Bäder, Nebenräume, Keller oder Garagen und bleibt trotz
+    zusätzlicher Komfortfunktionen bewusst übersichtlich.
 
-    Optional overrides:
-    • Permanent-light override keeps the light on until the override is released.
-    • Cleaning mode switches the light to 100% for a configurable period.
-    • Automation-disable leaves the light completely untouched for manual control.
+    💡 **Grundfunktion**
+    • Ein oder mehrere Bewegungs-/Präsenzsensoren können das Licht einschalten.
+    • Nach Ende der Bewegung läuft eine einstellbare Nachlaufzeit. Ausgeschaltet
+      wird nur, wenn danach weiterhin alle gewählten Sensoren inaktiv sind.
+    • Ein optionaler Helligkeitssensor verhindert tagsüber das Einschalten, wenn
+      bereits genügend Umgebungslicht vorhanden ist. Im Nachtzeitfenster wird
+      diese Lux-Prüfung bewusst übersprungen.
+    • Helligkeit und optionale Farbtemperatur können für Tag und Nacht getrennt
+      eingestellt werden.
 
-    Reliability:
-    • A restart fallback handles lights that were already on when Home Assistant
-      restarts and a previous delay was lost.
-    • A watchdog can switch off a light that remains on without motion for an
-      unusually long time.
+    🧩 **Optionale Betriebsarten**
+    • Dauerlicht-Override: hält das Licht eingeschaltet, bis der Override endet.
+    • Putzmodus: schaltet für eine definierte Zeit auf 100 % Helligkeit.
+    • Automatik deaktivieren: der Blueprint greift überhaupt nicht in das Licht ein.
 
-    Priority: automation disabled > permanent light > cleaning mode > motion
-    automation > watchdog.
+    🛡️ **Sicherheit & Robustheit**
+    • Ein Restart-Fallback behandelt den Fall, dass Home Assistant neu startet,
+      während das Licht noch eingeschaltet ist und eine vorherige Wartezeit
+      verloren gegangen ist.
+    • Ein Watchdog kann ein ungewöhnlich lange eingeschaltetes Licht ohne
+      erkannte Bewegung automatisch ausschalten.
+
+    Priorität: Automatik aus > Dauerlicht > Putzmodus > Bewegungsautomatik > Watchdog.
+
+    ---
+
+    🇬🇧 **English**
+
+    Motion Light Plus is a flexible blueprint for practical motion and occupancy
+    based lighting. It works well for hallways, stairs, bathrooms, utility rooms,
+    basements or garages while keeping the configuration intentionally simple.
+
+    💡 **Core behavior**
+    • One or more motion/occupancy sensors can switch the light on.
+    • After motion ends, a configurable off-delay starts. The light is only
+      switched off if all selected sensors are still inactive afterwards.
+    • An optional illuminance sensor can prevent switching on during daytime when
+      there is already enough ambient light. The lux check is intentionally
+      skipped during the configured night period.
+    • Brightness and optional color temperature can be configured separately for
+      day and night operation.
+
+    🧩 **Optional modes**
+    • Permanent-light override: keeps the light on until the override is released.
+    • Cleaning mode: runs the light at 100 % for a configurable period.
+    • Disable automation: leaves the light completely untouched for manual control.
+
+    🛡️ **Reliability & safety**
+    • A restart fallback handles cases where Home Assistant restarts while the
+      light is still on and a previous delay has been lost.
+    • A watchdog can switch off a light that remains on unusually long without
+      detected motion.
+
+    Priority: automation disabled > permanent light > cleaning mode > motion automation > watchdog.
   domain: automation
   source_url: https://github.com/vandecook/motion-light-plus/blob/main/blueprints/automation/motion_light_plus.yaml
   homeassistant:
