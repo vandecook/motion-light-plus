@@ -1,5 +1,5 @@
 # Motion Light Plus
-# Version: 1.2.0
+# Version: 1.2.1
 # Repository: https://github.com/vandecook/motion-light-plus
 #
 # Home Assistant automation blueprint for motion-controlled lighting.
@@ -552,10 +552,19 @@ triggers:
     at: !input sleep_start
     id: sleep_start
 
-  # Generic state_changed is used so optional switches/buttons may remain empty.
+  # Filtered state_changed events are used for optional entities.
+  # An empty optional input simply never matches and therefore creates no load.
   - trigger: event
     event_type: state_changed
-    id: optional_entity_changed
+    event_data:
+      entity_id: !input override_switch
+    id: override_changed
+
+  - trigger: event
+    event_type: state_changed
+    event_data:
+      entity_id: !input cleaning_button
+    id: cleaning_pressed
 
   - trigger: time_pattern
     minutes: "/5"
@@ -795,10 +804,10 @@ actions:
       # ======================================================
       - conditions:
           - condition: trigger
-            id: optional_entity_changed
+            id: override_changed
           - condition: template
             value_template: >-
-              {{ override_switch != '' and trigger.event.data.entity_id == override_switch }}
+              {{ override_switch != '' }}
           - condition: template
             value_template: >-
               {{ trigger.event.data.new_state is not none and trigger.event.data.new_state.state == 'on' }}
@@ -831,10 +840,10 @@ actions:
       # ======================================================
       - conditions:
           - condition: trigger
-            id: optional_entity_changed
+            id: override_changed
           - condition: template
             value_template: >-
-              {{ override_switch != '' and trigger.event.data.entity_id == override_switch }}
+              {{ override_switch != '' }}
           - condition: template
             value_template: >-
               {{ trigger.event.data.new_state is not none and trigger.event.data.new_state.state != 'on' }}
@@ -981,10 +990,10 @@ actions:
       # ======================================================
       - conditions:
           - condition: trigger
-            id: optional_entity_changed
+            id: cleaning_pressed
           - condition: template
             value_template: >-
-              {{ cleaning_button != '' and trigger.event.data.entity_id == cleaning_button }}
+              {{ cleaning_button != '' }}
           - condition: template
             value_template: >-
               {{ automation_disable_switch == '' or not is_state(automation_disable_switch, 'on') }}
