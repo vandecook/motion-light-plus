@@ -7,7 +7,7 @@
 # continuous-light override, automation lockout, restart fallback and watchdog.
 
 blueprint:
-  name: Motion Light Plus
+  name: Motion Light Plus (1.2.2)
   description: >-
     💡 Motion Light Plus – flexible motion-controlled lighting for Home Assistant.
 
