@@ -1,0 +1,1381 @@
+# Motion Light Plus
+# Version: 1.2.0
+# Repository: https://github.com/vandecook/motion-light-plus
+#
+# Home Assistant automation blueprint for motion-controlled lighting.
+# Includes optional daylight suppression, night/sleep modes, cleaning mode,
+# continuous-light override, automation lockout, restart fallback and watchdog.
+
+blueprint:
+  name: Motion Light Plus
+  description: >-
+    💡 Motion Light Plus – flexible motion-controlled lighting for Home Assistant.
+
+    🇩🇪 DEUTSCH
+    Schaltet ein Licht über einen oder mehrere Bewegungs-/Präsenzmelder und
+    kombiniert die Grundfunktion mit optionaler Helligkeitsmessung, Nacht- und
+    Schlafmodus sowie manuellen Overrides.
+
+    • Mehrere Bewegungs-/Präsenzmelder werden gemeinsam ausgewertet.
+    • Optionaler Lux-Sensor verhindert tagsüber unnötiges Einschalten.
+    • Nachtmodus verwendet eigene Helligkeit, Farbtemperatur und Übergänge.
+    • Schlafmodus ist ein Untermodus des Nachtmodus und kann zusätzlich eine
+      maximale Leuchtdauer pro Aktivierung erzwingen.
+    • Dauerlicht-Override hält das Licht unabhängig von Bewegung eingeschaltet.
+    • Putzmodus schaltet zeitlich begrenzt auf maximale Helligkeit.
+    • „Automatik aus“ übergibt die Leuchte vollständig an die manuelle Bedienung.
+    • Restart-Fallback und Watchdog reduzieren das Risiko eines hängen gebliebenen
+      eingeschalteten Lichts.
+    • Fade-In und Fade-Out sind für Normal-, Nacht-, Schlaf-, Dauerlicht- und
+      Putzmodus separat konfigurierbar.
+
+    Priorität:
+    Automatik aus > Dauerlicht > Putzmodus > Schlafmodus > Nachtmodus >
+    Normalbetrieb > Watchdog
+
+    🇬🇧 ENGLISH
+    Controls a light using one or more motion/presence sensors and combines the
+    basic motion-light function with optional illuminance control, night/sleep
+    modes and manual overrides.
+
+    • Multiple motion/presence sensors are evaluated together.
+    • Optional lux sensor suppresses unnecessary switching during daytime.
+    • Night mode provides dedicated brightness, color temperature and transitions.
+    • Sleep mode is a sub-mode of night mode and can enforce a maximum light-on
+      duration per activation.
+    • Continuous-light override keeps the light on independently of motion.
+    • Cleaning mode temporarily switches the light to maximum brightness.
+    • “Automation off” hands full control of the light back to manual operation.
+    • Restart fallback and watchdog reduce the risk of a light remaining on.
+    • Fade-in and fade-out can be configured separately for normal, night, sleep,
+      continuous-light and cleaning modes.
+
+    Priority:
+    Automation off > Continuous light > Cleaning > Sleep > Night > Normal > Watchdog
+  domain: automation
+  source_url: https://github.com/vandecook/motion-light-plus/blob/main/blueprints/automation/motion_light_plus.yaml
+
+  homeassistant:
+    min_version: 2024.6.0
+
+  input:
+    devices:
+      name: "💡 Geräte / Devices"
+      icon: mdi:devices
+      input:
+        motion_sensors:
+          name: Bewegungs-/Präsenzmelder
+          description: >-
+            Ein oder mehrere Binary-Sensoren. Sobald mindestens einer ON meldet,
+            wird Bewegung angenommen. Keine Bewegung liegt erst vor, wenn alle OFF sind.
+          selector:
+            entity:
+              filter:
+                - domain: binary_sensor
+              multiple: true
+
+        light_entity:
+          name: Licht
+          description: Zu steuernde Light-Entity.
+          selector:
+            entity:
+              filter:
+                - domain: light
+
+        illuminance_sensor:
+          name: Helligkeitssensor
+          description: >-
+            Optional. Wird kein Sensor gewählt, wird die Lux-Prüfung vollständig
+            übersprungen. Die Lux-Prüfung wirkt nur im normalen Tagesbetrieb.
+          default: ""
+          selector:
+            entity:
+              filter:
+                - domain: sensor
+                  device_class: illuminance
+
+    normal_mode:
+      name: "☀️ Normalbetrieb / Normal mode"
+      icon: mdi:white-balance-sunny
+      input:
+        lux_threshold:
+          name: Lux-Grenzwert
+          description: >-
+            Tagsüber wird bei Bewegung nur unterhalb dieses Werts eingeschaltet.
+            Wird kein Helligkeitssensor verwendet, hat dieser Wert keine Wirkung.
+          default: 120
+          selector:
+            number:
+              min: 0
+              max: 2000
+              step: 1
+              unit_of_measurement: lx
+              mode: box
+
+        normal_brightness:
+          name: Helligkeit
+          default: 100
+          selector:
+            number:
+              min: 1
+              max: 100
+              step: 1
+              unit_of_measurement: "%"
+              mode: slider
+
+        normal_color_temp:
+          name: Farbtemperatur
+          default: 4000
+          selector:
+            color_temp:
+              unit: kelvin
+              min: 2000
+              max: 6500
+
+        normal_fade_in:
+          name: Fade-In
+          default: 1
+          selector:
+            number:
+              min: 0
+              max: 30
+              step: 0.5
+              unit_of_measurement: s
+              mode: box
+
+        normal_fade_out:
+          name: Fade-Out
+          default: 2
+          selector:
+            number:
+              min: 0
+              max: 30
+              step: 0.5
+              unit_of_measurement: s
+              mode: box
+
+    color_temperature:
+      name: "🌡️ Farbtemperatur / Color temperature"
+      icon: mdi:temperature-kelvin
+      input:
+        color_temp_enabled:
+          name: Farbtemperatur verwenden
+          description: >-
+            Deaktivieren, wenn die Leuchte keine Farbtemperatur unterstützt.
+          default: true
+          selector:
+            boolean:
+
+    night_mode:
+      name: "🌙 Nachtmodus / Night mode"
+      icon: mdi:weather-night
+      input:
+        night_enabled:
+          name: Nachtmodus aktivieren
+          default: true
+          selector:
+            boolean:
+
+        night_start:
+          name: Nachtmodus ab
+          default: "22:00:00"
+          selector:
+            time:
+
+        night_end:
+          name: Nachtmodus bis
+          default: "06:00:00"
+          selector:
+            time:
+
+        night_brightness:
+          name: Helligkeit
+          default: 20
+          selector:
+            number:
+              min: 1
+              max: 100
+              step: 1
+              unit_of_measurement: "%"
+              mode: slider
+
+        night_color_temp:
+          name: Farbtemperatur
+          default: 2500
+          selector:
+            color_temp:
+              unit: kelvin
+              min: 2000
+              max: 6500
+
+        night_fade_in:
+          name: Fade-In
+          default: 1
+          selector:
+            number:
+              min: 0
+              max: 30
+              step: 0.5
+              unit_of_measurement: s
+              mode: box
+
+        night_fade_out:
+          name: Fade-Out
+          default: 2
+          selector:
+            number:
+              min: 0
+              max: 30
+              step: 0.5
+              unit_of_measurement: s
+              mode: box
+
+    sleep_mode:
+      name: "😴 Schlafmodus / Sleep mode"
+      icon: mdi:sleep
+      input:
+        sleep_enabled:
+          name: Schlafmodus aktivieren
+          description: >-
+            Untermodus des Nachtmodus. Das Zeitfenster sollte vollständig innerhalb
+            des Nachtmodus liegen.
+          default: false
+          selector:
+            boolean:
+
+        sleep_start:
+          name: Schlafmodus ab
+          default: "23:30:00"
+          selector:
+            time:
+
+        sleep_end:
+          name: Schlafmodus bis
+          default: "05:30:00"
+          selector:
+            time:
+
+        sleep_brightness:
+          name: Helligkeit
+          default: 5
+          selector:
+            number:
+              min: 1
+              max: 100
+              step: 1
+              unit_of_measurement: "%"
+              mode: slider
+
+        sleep_color_temp:
+          name: Farbtemperatur
+          default: 2200
+          selector:
+            color_temp:
+              unit: kelvin
+              min: 2000
+              max: 6500
+
+        sleep_max_duration:
+          name: Maximale Leuchtdauer
+          description: >-
+            Maximale Dauer einer Schlafmodus-Aktivierung. Weitere Bewegung verlängert
+            diese laufende Aktivierung nicht unbegrenzt. Nach dem Ausschalten kann eine
+            neue Bewegung erneut aktivieren.
+          default: 60
+          selector:
+            number:
+              min: 5
+              max: 1800
+              step: 5
+              unit_of_measurement: s
+              mode: box
+
+        sleep_fade_in:
+          name: Fade-In
+          default: 2
+          selector:
+            number:
+              min: 0
+              max: 30
+              step: 0.5
+              unit_of_measurement: s
+              mode: box
+
+        sleep_fade_out:
+          name: Fade-Out
+          default: 3
+          selector:
+            number:
+              min: 0
+              max: 30
+              step: 0.5
+              unit_of_measurement: s
+              mode: box
+
+    timing:
+      name: "⏱️ Bewegung & Sicherheit / Timing & safety"
+      icon: mdi:timer-outline
+      input:
+        no_motion_wait:
+          name: Nachlaufzeit ohne Bewegung
+          description: >-
+            Zeit ab dem Statuswechsel auf „keine Bewegung“. Vor dem Ausschalten
+            wird nochmals geprüft, ob weiterhin alle Bewegungsmelder OFF sind.
+          default: 300
+          selector:
+            number:
+              min: 0
+              max: 3600
+              step: 5
+              unit_of_measurement: s
+              mode: box
+
+        startup_delay:
+          name: Wartezeit nach Home-Assistant-Start
+          default: 30
+          selector:
+            number:
+              min: 5
+              max: 300
+              step: 5
+              unit_of_measurement: s
+              mode: box
+
+        watchdog_timeout:
+          name: Watchdog-Zeit
+          description: >-
+            Sicherheitsgrenze für ein eingeschaltetes Licht bei gleichzeitig
+            fehlender Bewegung. Dauerlicht, Putzmodus und Automatik-Aus haben Vorrang.
+          default: 900
+          selector:
+            number:
+              min: 60
+              max: 7200
+              step: 30
+              unit_of_measurement: s
+              mode: box
+
+    continuous_light:
+      name: "🔒 Dauerlicht / Continuous light"
+      icon: mdi:lightbulb-on-outline
+      input:
+        override_switch:
+          name: Dauerlicht-Schalter
+          description: >-
+            Optional. Solange ON, bleibt das Licht unabhängig von Bewegung,
+            Lux-Grenze, Nachlauf und Watchdog eingeschaltet.
+          default: ""
+          selector:
+            entity:
+              filter:
+                - domain: input_boolean
+                - domain: switch
+
+        override_brightness:
+          name: Helligkeit
+          default: 100
+          selector:
+            number:
+              min: 1
+              max: 100
+              step: 1
+              unit_of_measurement: "%"
+              mode: slider
+
+        override_color_temp:
+          name: Farbtemperatur
+          default: 4000
+          selector:
+            color_temp:
+              unit: kelvin
+              min: 2000
+              max: 6500
+
+        override_fade_in:
+          name: Fade-In
+          default: 1
+          selector:
+            number:
+              min: 0
+              max: 30
+              step: 0.5
+              unit_of_measurement: s
+              mode: box
+
+        override_fade_out:
+          name: Fade-Out
+          default: 2
+          selector:
+            number:
+              min: 0
+              max: 30
+              step: 0.5
+              unit_of_measurement: s
+              mode: box
+
+    cleaning_mode:
+      name: "🧹 Putzmodus / Cleaning mode"
+      icon: mdi:broom
+      input:
+        cleaning_button:
+          name: Putz-Taster
+          description: >-
+            Optionaler input_button. Ein Tastendruck startet den Putzmodus;
+            ein weiterer Tastendruck startet dessen Laufzeit erneut.
+          default: ""
+          selector:
+            entity:
+              filter:
+                - domain: input_button
+
+        cleaning_duration:
+          name: Dauer
+          default: 1800
+          selector:
+            number:
+              min: 60
+              max: 7200
+              step: 60
+              unit_of_measurement: s
+              mode: box
+
+        cleaning_color_temp:
+          name: Farbtemperatur
+          default: 4500
+          selector:
+            color_temp:
+              unit: kelvin
+              min: 2000
+              max: 6500
+
+        cleaning_fade_in:
+          name: Fade-In
+          default: 1
+          selector:
+            number:
+              min: 0
+              max: 30
+              step: 0.5
+              unit_of_measurement: s
+              mode: box
+
+        cleaning_fade_out:
+          name: Fade-Out
+          default: 2
+          selector:
+            number:
+              min: 0
+              max: 30
+              step: 0.5
+              unit_of_measurement: s
+              mode: box
+
+    automation_control:
+      name: "⛔ Automatik / Automation control"
+      icon: mdi:robot-off
+      input:
+        automation_disable_switch:
+          name: Automatik deaktivieren
+          description: >-
+            Optional. Solange ON, verändert dieser Blueprint das Licht nicht.
+            Manuelle Bedienung hat damit vollständige Kontrolle.
+          default: ""
+          selector:
+            entity:
+              filter:
+                - domain: input_boolean
+                - domain: switch
+
+variables:
+  motion_sensors: !input motion_sensors
+  light_entity: !input light_entity
+  illuminance_sensor: !input illuminance_sensor
+  lux_threshold: !input lux_threshold
+  color_temp_enabled: !input color_temp_enabled
+
+  normal_brightness: !input normal_brightness
+  normal_color_temp: !input normal_color_temp
+  normal_fade_in: !input normal_fade_in
+  normal_fade_out: !input normal_fade_out
+
+  night_enabled: !input night_enabled
+  night_start: !input night_start
+  night_end: !input night_end
+  night_brightness: !input night_brightness
+  night_color_temp: !input night_color_temp
+  night_fade_in: !input night_fade_in
+  night_fade_out: !input night_fade_out
+
+  sleep_enabled: !input sleep_enabled
+  sleep_start: !input sleep_start
+  sleep_end: !input sleep_end
+  sleep_brightness: !input sleep_brightness
+  sleep_color_temp: !input sleep_color_temp
+  sleep_max_duration: !input sleep_max_duration
+  sleep_fade_in: !input sleep_fade_in
+  sleep_fade_out: !input sleep_fade_out
+
+  no_motion_wait: !input no_motion_wait
+  startup_delay: !input startup_delay
+  watchdog_timeout: !input watchdog_timeout
+
+  override_switch: !input override_switch
+  override_brightness: !input override_brightness
+  override_color_temp: !input override_color_temp
+  override_fade_in: !input override_fade_in
+  override_fade_out: !input override_fade_out
+
+  cleaning_button: !input cleaning_button
+  cleaning_duration: !input cleaning_duration
+  cleaning_color_temp: !input cleaning_color_temp
+  cleaning_fade_in: !input cleaning_fade_in
+  cleaning_fade_out: !input cleaning_fade_out
+
+  automation_disable_switch: !input automation_disable_switch
+
+triggers:
+  - trigger: state
+    entity_id: !input motion_sensors
+    to: "on"
+    id: motion_on
+
+  - trigger: state
+    entity_id: !input motion_sensors
+    to: "off"
+    id: motion_off
+
+  - trigger: homeassistant
+    event: start
+    id: ha_start
+
+  - trigger: time
+    at: !input sleep_start
+    id: sleep_start
+
+  # Generic state_changed is used so optional switches/buttons may remain empty.
+  - trigger: event
+    event_type: state_changed
+    id: optional_entity_changed
+
+  - trigger: time_pattern
+    minutes: "/5"
+    id: watchdog
+
+actions:
+  - choose:
+
+      # ======================================================
+      # MOTION ON
+      # ======================================================
+      - conditions:
+          - condition: trigger
+            id: motion_on
+          - condition: template
+            value_template: >-
+              {{ automation_disable_switch == '' or not is_state(automation_disable_switch, 'on') }}
+          - condition: template
+            value_template: >-
+              {{ override_switch == '' or not is_state(override_switch, 'on') }}
+          - condition: template
+            value_template: >-
+              {% if cleaning_button == '' %}
+                true
+              {% else %}
+                {% set s = states(cleaning_button) %}
+                {{ s in ['unknown','unavailable',''] or
+                   (as_timestamp(now()) - as_timestamp(s, 0)) >= cleaning_duration }}
+              {% endif %}
+        sequence:
+          - choose:
+
+              # SLEEP MODE
+              - conditions:
+                  - condition: template
+                    value_template: >-
+                      {% set cur = now().strftime('%H:%M:%S') %}
+                      {% set night = night_enabled and
+                        ((night_start <= night_end and cur >= night_start and cur < night_end) or
+                         (night_start > night_end and (cur >= night_start or cur < night_end))) %}
+                      {% set sleep = sleep_enabled and
+                        ((sleep_start <= sleep_end and cur >= sleep_start and cur < sleep_end) or
+                         (sleep_start > sleep_end and (cur >= sleep_start or cur < sleep_end))) %}
+                      {{ night and sleep }}
+                sequence:
+                  - choose:
+                      - conditions:
+                          - condition: template
+                            value_template: "{{ color_temp_enabled }}"
+                        sequence:
+                          - action: light.turn_on
+                            target:
+                              entity_id: !input light_entity
+                            data:
+                              brightness_pct: !input sleep_brightness
+                              color_temp_kelvin: !input sleep_color_temp
+                              transition: !input sleep_fade_in
+                    default:
+                      - action: light.turn_on
+                        target:
+                          entity_id: !input light_entity
+                        data:
+                          brightness_pct: !input sleep_brightness
+                          transition: !input sleep_fade_in
+
+                  - wait_template: "{{ is_state(light_entity, 'on') }}"
+                    timeout: "00:00:03"
+                    continue_on_timeout: true
+
+                  - variables:
+                      sleep_activation_marker: >-
+                        {{ states[light_entity].last_changed.isoformat() if states[light_entity] is defined else '' }}
+
+                  - delay:
+                      seconds: !input sleep_max_duration
+
+                  - condition: template
+                    value_template: >-
+                      {{ automation_disable_switch == '' or not is_state(automation_disable_switch, 'on') }}
+                  - condition: template
+                    value_template: >-
+                      {{ override_switch == '' or not is_state(override_switch, 'on') }}
+                  - condition: template
+                    value_template: >-
+                      {% if cleaning_button == '' %}
+                        true
+                      {% else %}
+                        {% set s = states(cleaning_button) %}
+                        {{ s in ['unknown','unavailable',''] or
+                           (as_timestamp(now()) - as_timestamp(s, 0)) >= cleaning_duration }}
+                      {% endif %}
+                  - condition: state
+                    entity_id: !input light_entity
+                    state: "on"
+                  - condition: template
+                    value_template: >-
+                      {{ states[light_entity].last_changed.isoformat() == sleep_activation_marker }}
+                  - action: light.turn_off
+                    target:
+                      entity_id: !input light_entity
+                    data:
+                      transition: !input sleep_fade_out
+
+              # NIGHT MODE
+              - conditions:
+                  - condition: template
+                    value_template: >-
+                      {% set cur = now().strftime('%H:%M:%S') %}
+                      {{ night_enabled and
+                         ((night_start <= night_end and cur >= night_start and cur < night_end) or
+                          (night_start > night_end and (cur >= night_start or cur < night_end))) }}
+                sequence:
+                  - choose:
+                      - conditions:
+                          - condition: template
+                            value_template: "{{ color_temp_enabled }}"
+                        sequence:
+                          - action: light.turn_on
+                            target:
+                              entity_id: !input light_entity
+                            data:
+                              brightness_pct: !input night_brightness
+                              color_temp_kelvin: !input night_color_temp
+                              transition: !input night_fade_in
+                    default:
+                      - action: light.turn_on
+                        target:
+                          entity_id: !input light_entity
+                        data:
+                          brightness_pct: !input night_brightness
+                          transition: !input night_fade_in
+
+            # NORMAL MODE
+            default:
+              - condition: template
+                value_template: >-
+                  {% if illuminance_sensor == '' %}
+                    true
+                  {% else %}
+                    {% set value = states(illuminance_sensor) %}
+                    {{ value not in ['unknown','unavailable',''] and
+                       is_number(value) and (value | float) < lux_threshold }}
+                  {% endif %}
+              - choose:
+                  - conditions:
+                      - condition: template
+                        value_template: "{{ color_temp_enabled }}"
+                    sequence:
+                      - action: light.turn_on
+                        target:
+                          entity_id: !input light_entity
+                        data:
+                          brightness_pct: !input normal_brightness
+                          color_temp_kelvin: !input normal_color_temp
+                          transition: !input normal_fade_in
+                default:
+                  - action: light.turn_on
+                    target:
+                      entity_id: !input light_entity
+                    data:
+                      brightness_pct: !input normal_brightness
+                      transition: !input normal_fade_in
+
+      # ======================================================
+      # MOTION OFF -> DELAY -> CHECK ALL SENSORS AGAIN
+      # ======================================================
+      - conditions:
+          - condition: trigger
+            id: motion_off
+        sequence:
+          - condition: template
+            value_template: >-
+              {{ expand(motion_sensors) | selectattr('state', 'eq', 'on') | list | count == 0 }}
+          - delay:
+              seconds: !input no_motion_wait
+          - condition: template
+            value_template: >-
+              {{ automation_disable_switch == '' or not is_state(automation_disable_switch, 'on') }}
+          - condition: template
+            value_template: >-
+              {{ override_switch == '' or not is_state(override_switch, 'on') }}
+          - condition: template
+            value_template: >-
+              {% if cleaning_button == '' %}
+                true
+              {% else %}
+                {% set s = states(cleaning_button) %}
+                {{ s in ['unknown','unavailable',''] or
+                   (as_timestamp(now()) - as_timestamp(s, 0)) >= cleaning_duration }}
+              {% endif %}
+          - condition: template
+            value_template: >-
+              {{ expand(motion_sensors) | selectattr('state', 'eq', 'on') | list | count == 0 }}
+          - condition: state
+            entity_id: !input light_entity
+            state: "on"
+          - choose:
+              - conditions:
+                  - condition: template
+                    value_template: >-
+                      {% set cur = now().strftime('%H:%M:%S') %}
+                      {% set night = night_enabled and
+                        ((night_start <= night_end and cur >= night_start and cur < night_end) or
+                         (night_start > night_end and (cur >= night_start or cur < night_end))) %}
+                      {% set sleep = sleep_enabled and
+                        ((sleep_start <= sleep_end and cur >= sleep_start and cur < sleep_end) or
+                         (sleep_start > sleep_end and (cur >= sleep_start or cur < sleep_end))) %}
+                      {{ night and sleep }}
+                sequence:
+                  - action: light.turn_off
+                    target:
+                      entity_id: !input light_entity
+                    data:
+                      transition: !input sleep_fade_out
+              - conditions:
+                  - condition: template
+                    value_template: >-
+                      {% set cur = now().strftime('%H:%M:%S') %}
+                      {{ night_enabled and
+                         ((night_start <= night_end and cur >= night_start and cur < night_end) or
+                          (night_start > night_end and (cur >= night_start or cur < night_end))) }}
+                sequence:
+                  - action: light.turn_off
+                    target:
+                      entity_id: !input light_entity
+                    data:
+                      transition: !input night_fade_out
+            default:
+              - action: light.turn_off
+                target:
+                  entity_id: !input light_entity
+                data:
+                  transition: !input normal_fade_out
+
+      # ======================================================
+      # OPTIONAL ENTITY CHANGED: CONTINUOUS LIGHT ON
+      # ======================================================
+      - conditions:
+          - condition: trigger
+            id: optional_entity_changed
+          - condition: template
+            value_template: >-
+              {{ override_switch != '' and trigger.event.data.entity_id == override_switch }}
+          - condition: template
+            value_template: >-
+              {{ trigger.event.data.new_state is not none and trigger.event.data.new_state.state == 'on' }}
+          - condition: template
+            value_template: >-
+              {{ automation_disable_switch == '' or not is_state(automation_disable_switch, 'on') }}
+        sequence:
+          - choose:
+              - conditions:
+                  - condition: template
+                    value_template: "{{ color_temp_enabled }}"
+                sequence:
+                  - action: light.turn_on
+                    target:
+                      entity_id: !input light_entity
+                    data:
+                      brightness_pct: !input override_brightness
+                      color_temp_kelvin: !input override_color_temp
+                      transition: !input override_fade_in
+            default:
+              - action: light.turn_on
+                target:
+                  entity_id: !input light_entity
+                data:
+                  brightness_pct: !input override_brightness
+                  transition: !input override_fade_in
+
+      # ======================================================
+      # OPTIONAL ENTITY CHANGED: CONTINUOUS LIGHT OFF
+      # ======================================================
+      - conditions:
+          - condition: trigger
+            id: optional_entity_changed
+          - condition: template
+            value_template: >-
+              {{ override_switch != '' and trigger.event.data.entity_id == override_switch }}
+          - condition: template
+            value_template: >-
+              {{ trigger.event.data.new_state is not none and trigger.event.data.new_state.state != 'on' }}
+          - condition: template
+            value_template: >-
+              {{ automation_disable_switch == '' or not is_state(automation_disable_switch, 'on') }}
+        sequence:
+          - choose:
+              # Cleaning still active
+              - conditions:
+                  - condition: template
+                    value_template: >-
+                      {% if cleaning_button == '' %}
+                        false
+                      {% else %}
+                        {% set s = states(cleaning_button) %}
+                        {{ s not in ['unknown','unavailable',''] and
+                           (as_timestamp(now()) - as_timestamp(s, 0)) < cleaning_duration }}
+                      {% endif %}
+                sequence:
+                  - choose:
+                      - conditions:
+                          - condition: template
+                            value_template: "{{ color_temp_enabled }}"
+                        sequence:
+                          - action: light.turn_on
+                            target:
+                              entity_id: !input light_entity
+                            data:
+                              brightness_pct: 100
+                              color_temp_kelvin: !input cleaning_color_temp
+                              transition: !input cleaning_fade_in
+                    default:
+                      - action: light.turn_on
+                        target:
+                          entity_id: !input light_entity
+                        data:
+                          brightness_pct: 100
+                          transition: !input cleaning_fade_in
+
+              # Motion active -> re-evaluate motion mode
+              - conditions:
+                  - condition: template
+                    value_template: >-
+                      {{ expand(motion_sensors) | selectattr('state', 'eq', 'on') | list | count > 0 }}
+                sequence:
+                  - choose:
+                      - conditions:
+                          - condition: template
+                            value_template: >-
+                              {% set cur = now().strftime('%H:%M:%S') %}
+                              {% set night = night_enabled and
+                                ((night_start <= night_end and cur >= night_start and cur < night_end) or
+                                 (night_start > night_end and (cur >= night_start or cur < night_end))) %}
+                              {% set sleep = sleep_enabled and
+                                ((sleep_start <= sleep_end and cur >= sleep_start and cur < sleep_end) or
+                                 (sleep_start > sleep_end and (cur >= sleep_start or cur < sleep_end))) %}
+                              {{ night and sleep }}
+                        sequence:
+                          - choose:
+                              - conditions:
+                                  - condition: template
+                                    value_template: "{{ color_temp_enabled }}"
+                                sequence:
+                                  - action: light.turn_on
+                                    target:
+                                      entity_id: !input light_entity
+                                    data:
+                                      brightness_pct: !input sleep_brightness
+                                      color_temp_kelvin: !input sleep_color_temp
+                                      transition: !input sleep_fade_in
+                            default:
+                              - action: light.turn_on
+                                target:
+                                  entity_id: !input light_entity
+                                data:
+                                  brightness_pct: !input sleep_brightness
+                                  transition: !input sleep_fade_in
+                      - conditions:
+                          - condition: template
+                            value_template: >-
+                              {% set cur = now().strftime('%H:%M:%S') %}
+                              {{ night_enabled and
+                                 ((night_start <= night_end and cur >= night_start and cur < night_end) or
+                                  (night_start > night_end and (cur >= night_start or cur < night_end))) }}
+                        sequence:
+                          - choose:
+                              - conditions:
+                                  - condition: template
+                                    value_template: "{{ color_temp_enabled }}"
+                                sequence:
+                                  - action: light.turn_on
+                                    target:
+                                      entity_id: !input light_entity
+                                    data:
+                                      brightness_pct: !input night_brightness
+                                      color_temp_kelvin: !input night_color_temp
+                                      transition: !input night_fade_in
+                            default:
+                              - action: light.turn_on
+                                target:
+                                  entity_id: !input light_entity
+                                data:
+                                  brightness_pct: !input night_brightness
+                                  transition: !input night_fade_in
+                    default:
+                      - condition: template
+                        value_template: >-
+                          {% if illuminance_sensor == '' %}
+                            true
+                          {% else %}
+                            {% set value = states(illuminance_sensor) %}
+                            {{ value not in ['unknown','unavailable',''] and
+                               is_number(value) and (value | float) < lux_threshold }}
+                          {% endif %}
+                      - choose:
+                          - conditions:
+                              - condition: template
+                                value_template: "{{ color_temp_enabled }}"
+                            sequence:
+                              - action: light.turn_on
+                                target:
+                                  entity_id: !input light_entity
+                                data:
+                                  brightness_pct: !input normal_brightness
+                                  color_temp_kelvin: !input normal_color_temp
+                                  transition: !input normal_fade_in
+                        default:
+                          - action: light.turn_on
+                            target:
+                              entity_id: !input light_entity
+                            data:
+                              brightness_pct: !input normal_brightness
+                              transition: !input normal_fade_in
+            default:
+              - action: light.turn_off
+                target:
+                  entity_id: !input light_entity
+                data:
+                  transition: !input override_fade_out
+
+      # ======================================================
+      # OPTIONAL ENTITY CHANGED: CLEANING BUTTON
+      # ======================================================
+      - conditions:
+          - condition: trigger
+            id: optional_entity_changed
+          - condition: template
+            value_template: >-
+              {{ cleaning_button != '' and trigger.event.data.entity_id == cleaning_button }}
+          - condition: template
+            value_template: >-
+              {{ automation_disable_switch == '' or not is_state(automation_disable_switch, 'on') }}
+          - condition: template
+            value_template: >-
+              {{ override_switch == '' or not is_state(override_switch, 'on') }}
+        sequence:
+          - variables:
+              cleaning_press_marker: >-
+                {{ trigger.event.data.new_state.state if trigger.event.data.new_state is not none else '' }}
+          - choose:
+              - conditions:
+                  - condition: template
+                    value_template: "{{ color_temp_enabled }}"
+                sequence:
+                  - action: light.turn_on
+                    target:
+                      entity_id: !input light_entity
+                    data:
+                      brightness_pct: 100
+                      color_temp_kelvin: !input cleaning_color_temp
+                      transition: !input cleaning_fade_in
+            default:
+              - action: light.turn_on
+                target:
+                  entity_id: !input light_entity
+                data:
+                  brightness_pct: 100
+                  transition: !input cleaning_fade_in
+
+          - delay:
+              seconds: !input cleaning_duration
+
+          # A newer button press means this run is stale and must not end the mode.
+          - condition: template
+            value_template: >-
+              {{ cleaning_button == '' or states(cleaning_button) == cleaning_press_marker }}
+          - condition: template
+            value_template: >-
+              {{ automation_disable_switch == '' or not is_state(automation_disable_switch, 'on') }}
+
+          - choose:
+              - conditions:
+                  - condition: template
+                    value_template: >-
+                      {{ override_switch != '' and is_state(override_switch, 'on') }}
+                sequence:
+                  - choose:
+                      - conditions:
+                          - condition: template
+                            value_template: "{{ color_temp_enabled }}"
+                        sequence:
+                          - action: light.turn_on
+                            target:
+                              entity_id: !input light_entity
+                            data:
+                              brightness_pct: !input override_brightness
+                              color_temp_kelvin: !input override_color_temp
+                              transition: !input override_fade_in
+                    default:
+                      - action: light.turn_on
+                        target:
+                          entity_id: !input light_entity
+                        data:
+                          brightness_pct: !input override_brightness
+                          transition: !input override_fade_in
+
+              - conditions:
+                  - condition: template
+                    value_template: >-
+                      {{ expand(motion_sensors) | selectattr('state', 'eq', 'on') | list | count > 0 }}
+                sequence:
+                  - choose:
+                      - conditions:
+                          - condition: template
+                            value_template: >-
+                              {% set cur = now().strftime('%H:%M:%S') %}
+                              {% set night = night_enabled and
+                                ((night_start <= night_end and cur >= night_start and cur < night_end) or
+                                 (night_start > night_end and (cur >= night_start or cur < night_end))) %}
+                              {% set sleep = sleep_enabled and
+                                ((sleep_start <= sleep_end and cur >= sleep_start and cur < sleep_end) or
+                                 (sleep_start > sleep_end and (cur >= sleep_start or cur < sleep_end))) %}
+                              {{ night and sleep }}
+                        sequence:
+                          - choose:
+                              - conditions:
+                                  - condition: template
+                                    value_template: "{{ color_temp_enabled }}"
+                                sequence:
+                                  - action: light.turn_on
+                                    target:
+                                      entity_id: !input light_entity
+                                    data:
+                                      brightness_pct: !input sleep_brightness
+                                      color_temp_kelvin: !input sleep_color_temp
+                                      transition: !input sleep_fade_in
+                            default:
+                              - action: light.turn_on
+                                target:
+                                  entity_id: !input light_entity
+                                data:
+                                  brightness_pct: !input sleep_brightness
+                                  transition: !input sleep_fade_in
+                      - conditions:
+                          - condition: template
+                            value_template: >-
+                              {% set cur = now().strftime('%H:%M:%S') %}
+                              {{ night_enabled and
+                                 ((night_start <= night_end and cur >= night_start and cur < night_end) or
+                                  (night_start > night_end and (cur >= night_start or cur < night_end))) }}
+                        sequence:
+                          - choose:
+                              - conditions:
+                                  - condition: template
+                                    value_template: "{{ color_temp_enabled }}"
+                                sequence:
+                                  - action: light.turn_on
+                                    target:
+                                      entity_id: !input light_entity
+                                    data:
+                                      brightness_pct: !input night_brightness
+                                      color_temp_kelvin: !input night_color_temp
+                                      transition: !input night_fade_in
+                            default:
+                              - action: light.turn_on
+                                target:
+                                  entity_id: !input light_entity
+                                data:
+                                  brightness_pct: !input night_brightness
+                                  transition: !input night_fade_in
+                    default:
+                      - condition: template
+                        value_template: >-
+                          {% if illuminance_sensor == '' %}
+                            true
+                          {% else %}
+                            {% set value = states(illuminance_sensor) %}
+                            {{ value not in ['unknown','unavailable',''] and
+                               is_number(value) and (value | float) < lux_threshold }}
+                          {% endif %}
+                      - choose:
+                          - conditions:
+                              - condition: template
+                                value_template: "{{ color_temp_enabled }}"
+                            sequence:
+                              - action: light.turn_on
+                                target:
+                                  entity_id: !input light_entity
+                                data:
+                                  brightness_pct: !input normal_brightness
+                                  color_temp_kelvin: !input normal_color_temp
+                                  transition: !input normal_fade_in
+                        default:
+                          - action: light.turn_on
+                            target:
+                              entity_id: !input light_entity
+                            data:
+                              brightness_pct: !input normal_brightness
+                              transition: !input normal_fade_in
+            default:
+              - action: light.turn_off
+                target:
+                  entity_id: !input light_entity
+                data:
+                  transition: !input cleaning_fade_out
+
+      # ======================================================
+      # SLEEP START: if motion is already active, enter sleep mode
+      # ======================================================
+      - conditions:
+          - condition: trigger
+            id: sleep_start
+          - condition: template
+            value_template: "{{ sleep_enabled and night_enabled }}"
+          - condition: template
+            value_template: >-
+              {{ automation_disable_switch == '' or not is_state(automation_disable_switch, 'on') }}
+          - condition: template
+            value_template: >-
+              {{ override_switch == '' or not is_state(override_switch, 'on') }}
+          - condition: template
+            value_template: >-
+              {% if cleaning_button == '' %}
+                true
+              {% else %}
+                {% set s = states(cleaning_button) %}
+                {{ s in ['unknown','unavailable',''] or
+                   (as_timestamp(now()) - as_timestamp(s, 0)) >= cleaning_duration }}
+              {% endif %}
+          - condition: template
+            value_template: >-
+              {{ expand(motion_sensors) | selectattr('state', 'eq', 'on') | list | count > 0 }}
+          - condition: template
+            value_template: >-
+              {% set cur = now().strftime('%H:%M:%S') %}
+              {{ (night_start <= night_end and cur >= night_start and cur < night_end) or
+                 (night_start > night_end and (cur >= night_start or cur < night_end)) }}
+        sequence:
+          - choose:
+              - conditions:
+                  - condition: template
+                    value_template: "{{ color_temp_enabled }}"
+                sequence:
+                  - action: light.turn_on
+                    target:
+                      entity_id: !input light_entity
+                    data:
+                      brightness_pct: !input sleep_brightness
+                      color_temp_kelvin: !input sleep_color_temp
+                      transition: !input sleep_fade_in
+            default:
+              - action: light.turn_on
+                target:
+                  entity_id: !input light_entity
+                data:
+                  brightness_pct: !input sleep_brightness
+                  transition: !input sleep_fade_in
+
+          - wait_template: "{{ is_state(light_entity, 'on') }}"
+            timeout: "00:00:03"
+            continue_on_timeout: true
+
+          - variables:
+              sleep_activation_marker: >-
+                {{ states[light_entity].last_changed.isoformat() if states[light_entity] is defined else '' }}
+
+          - delay:
+              seconds: !input sleep_max_duration
+
+          - condition: template
+            value_template: >-
+              {{ automation_disable_switch == '' or not is_state(automation_disable_switch, 'on') }}
+          - condition: template
+            value_template: >-
+              {{ override_switch == '' or not is_state(override_switch, 'on') }}
+          - condition: state
+            entity_id: !input light_entity
+            state: "on"
+          - condition: template
+            value_template: >-
+              {{ states[light_entity].last_changed.isoformat() == sleep_activation_marker }}
+          - action: light.turn_off
+            target:
+              entity_id: !input light_entity
+            data:
+              transition: !input sleep_fade_out
+
+      # ======================================================
+      # HOME ASSISTANT START FALLBACK
+      # ======================================================
+      - conditions:
+          - condition: trigger
+            id: ha_start
+        sequence:
+          - delay:
+              seconds: !input startup_delay
+          - condition: template
+            value_template: >-
+              {{ automation_disable_switch == '' or not is_state(automation_disable_switch, 'on') }}
+          - choose:
+              # Continuous light has highest active mode priority.
+              - conditions:
+                  - condition: template
+                    value_template: >-
+                      {{ override_switch != '' and is_state(override_switch, 'on') }}
+                sequence:
+                  - choose:
+                      - conditions:
+                          - condition: template
+                            value_template: "{{ color_temp_enabled }}"
+                        sequence:
+                          - action: light.turn_on
+                            target:
+                              entity_id: !input light_entity
+                            data:
+                              brightness_pct: !input override_brightness
+                              color_temp_kelvin: !input override_color_temp
+                              transition: !input override_fade_in
+                    default:
+                      - action: light.turn_on
+                        target:
+                          entity_id: !input light_entity
+                        data:
+                          brightness_pct: !input override_brightness
+                          transition: !input override_fade_in
+
+              # Cleaning mode may survive restart through input_button timestamp.
+              - conditions:
+                  - condition: template
+                    value_template: >-
+                      {% if cleaning_button == '' %}
+                        false
+                      {% else %}
+                        {% set s = states(cleaning_button) %}
+                        {{ s not in ['unknown','unavailable',''] and
+                           (as_timestamp(now()) - as_timestamp(s, 0)) < cleaning_duration }}
+                      {% endif %}
+                sequence:
+                  - choose:
+                      - conditions:
+                          - condition: template
+                            value_template: "{{ color_temp_enabled }}"
+                        sequence:
+                          - action: light.turn_on
+                            target:
+                              entity_id: !input light_entity
+                            data:
+                              brightness_pct: 100
+                              color_temp_kelvin: !input cleaning_color_temp
+                              transition: !input cleaning_fade_in
+                    default:
+                      - action: light.turn_on
+                        target:
+                          entity_id: !input light_entity
+                        data:
+                          brightness_pct: 100
+                          transition: !input cleaning_fade_in
+
+              # Normal fallback: if light is on but all motion is off, start a new grace period.
+              - conditions:
+                  - condition: state
+                    entity_id: !input light_entity
+                    state: "on"
+                  - condition: template
+                    value_template: >-
+                      {{ expand(motion_sensors) | selectattr('state', 'eq', 'on') | list | count == 0 }}
+                sequence:
+                  - delay:
+                      seconds: !input no_motion_wait
+                  - condition: template
+                    value_template: >-
+                      {{ automation_disable_switch == '' or not is_state(automation_disable_switch, 'on') }}
+                  - condition: template
+                    value_template: >-
+                      {{ override_switch == '' or not is_state(override_switch, 'on') }}
+                  - condition: template
+                    value_template: >-
+                      {% if cleaning_button == '' %}
+                        true
+                      {% else %}
+                        {% set s = states(cleaning_button) %}
+                        {{ s in ['unknown','unavailable',''] or
+                           (as_timestamp(now()) - as_timestamp(s, 0)) >= cleaning_duration }}
+                      {% endif %}
+                  - condition: template
+                    value_template: >-
+                      {{ expand(motion_sensors) | selectattr('state', 'eq', 'on') | list | count == 0 }}
+                  - action: light.turn_off
+                    target:
+                      entity_id: !input light_entity
+                    data:
+                      transition: !input normal_fade_out
+
+      # ======================================================
+      # WATCHDOG
+      # ======================================================
+      - conditions:
+          - condition: trigger
+            id: watchdog
+          - condition: state
+            entity_id: !input light_entity
+            state: "on"
+          - condition: template
+            value_template: >-
+              {{ automation_disable_switch == '' or not is_state(automation_disable_switch, 'on') }}
+          - condition: template
+            value_template: >-
+              {{ override_switch == '' or not is_state(override_switch, 'on') }}
+          - condition: template
+            value_template: >-
+              {% if cleaning_button == '' %}
+                true
+              {% else %}
+                {% set s = states(cleaning_button) %}
+                {{ s in ['unknown','unavailable',''] or
+                   (as_timestamp(now()) - as_timestamp(s, 0)) >= cleaning_duration }}
+              {% endif %}
+          - condition: template
+            value_template: >-
+              {{ expand(motion_sensors) | selectattr('state', 'eq', 'on') | list | count == 0 }}
+          - condition: template
+            value_template: >-
+              {{ (as_timestamp(now()) - as_timestamp(states[light_entity].last_changed)) >= watchdog_timeout }}
+        sequence:
+          - action: light.turn_off
+            target:
+              entity_id: !input light_entity
+            data:
+              transition: !input normal_fade_out
+
+mode: parallel
+max: 20
+max_exceeded: silent

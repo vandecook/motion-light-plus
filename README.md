@@ -1,186 +1,257 @@
-# 💡 Motion Light Plus – Home Assistant Blueprint
+# 💡 Motion Light Plus
 
-Ein Home-Assistant-Automation-Blueprint für robuste Bewegungs-/Präsenzlichtsteuerung mit mehreren Sensoren, optionalem Lux-Sensor, Nachtbetrieb, optionaler Farbtemperatur, Overrides, Putzmodus, Restart-Fallback und Watchdog.
+A flexible but deliberately compact **Home Assistant motion-light blueprint** for rooms where a simple motion trigger is not quite enough.
 
-🔗 **Repository:** `vandecook/motion-light-plus`
+**Version:** `1.2.0`  
+**Repository:** `vandecook/motion-light-plus`
 
+---
 
-## 📦 GitHub-Struktur
+## ✨ Features
+
+- 🚶 **One or multiple motion / presence sensors**
+- ☀️ **Optional illuminance sensor** with daytime lux threshold
+- 🌙 **Night mode** with dedicated brightness, color temperature and transitions
+- 😴 **Sleep mode** as a sub-mode of night mode
+- ⏱️ Configurable **maximum light-on duration in sleep mode**
+- 🔒 Optional **continuous-light override**
+- 🧹 Optional **cleaning mode** with temporary 100 % brightness
+- ⛔ Optional **automation-off switch** for completely manual control
+- 🌡️ Optional **color-temperature control**
+- 🎚️ Separate **fade-in / fade-out** values for every operating mode
+- 🔄 **Restart fallback** after a Home Assistant restart
+- 🛡️ **Watchdog** against unintentionally persistent lighting
+
+---
+
+## 🇩🇪 Funktionsprinzip
+
+### 🚶 Bewegung
+
+Einer oder mehrere Bewegungs- bzw. Präsenzmelder können ausgewählt werden.
+
+- Sobald **mindestens ein Sensor `on`** meldet, gilt Bewegung als erkannt.
+- Keine Bewegung liegt erst vor, wenn **alle Sensoren `off`** sind.
+- Ab diesem Zeitpunkt beginnt die konfigurierbare Nachlaufzeit.
+- Vor dem Ausschalten wird erneut geprüft, ob weiterhin keine Bewegung vorliegt.
+
+Damit eignet sich der Blueprint auch für Flure, Stiegenhäuser oder größere Räume mit mehreren Sensoren.
+
+### ☀️ Tagesbetrieb und Lux-Sensor
+
+Der Helligkeitssensor ist optional.
+
+Ist er konfiguriert, wird das Licht im normalen Tagesbetrieb nur eingeschaltet, wenn der Messwert unterhalb des eingestellten Lux-Grenzwerts liegt. Ohne Lux-Sensor wird diese Prüfung vollständig übersprungen.
+
+Die Lux-Prüfung gilt **nicht** für Nacht- und Schlafmodus.
+
+### 🌙 Nachtmodus
+
+Der Nachtmodus besitzt ein eigenes Zeitfenster und eigene Werte für:
+
+- Helligkeit
+- Farbtemperatur
+- Fade-In
+- Fade-Out
+
+Zeitfenster über Mitternacht, beispielsweise `22:00 – 06:00`, werden unterstützt. Die Lux-Prüfung wird im Nachtmodus bewusst ignoriert.
+
+**Beispiel:**
 
 ```text
-motion-light-plus/
-├── blueprints/
-│   └── automation/
-│       └── motion_light_plus.yaml
-├── CHANGELOG.md
-├── LICENSE
-└── README.md
+Nachtmodus aktiv:       Ja
+Beginn:                 22:00
+Ende:                   06:00
+Helligkeit:             20 %
+Farbtemperatur:         2500 K
+Fade-In:                1 s
+Fade-Out:               2 s
 ```
 
-Der Blueprint kann in Home Assistant direkt aus diesem GitHub-Repository importiert werden.
+Damit wird bei Bewegung zwischen 22:00 und 06:00 Uhr unabhängig vom Lux-Wert mit reduziertem, wärmerem Licht eingeschaltet.
 
-GitHub-Datei-URL:
+### 😴 Schlafmodus
+
+Der Schlafmodus ist bewusst als **Untermodus des Nachtmodus** ausgeführt.
+
+Das Schlaf-Zeitfenster sollte vollständig innerhalb des Nacht-Zeitfensters liegen, beispielsweise:
 
 ```text
-https://github.com/vandecook/motion-light-plus/blob/main/blueprints/automation/motion_light_plus.yaml
+Nachtmodus:  22:00 – 06:00
+Schlafmodus: 23:30 – 05:30
 ```
 
-Alternativ funktioniert auch die Raw-URL:
+**Beispielkonfiguration Schlafmodus:**
 
 ```text
-https://raw.githubusercontent.com/vandecook/motion-light-plus/main/blueprints/automation/motion_light_plus.yaml
+Schlafmodus aktiv:      Ja
+Beginn:                 23:30
+Ende:                   05:30
+Helligkeit:             5 %
+Farbtemperatur:         2200 K
+Max. Leuchtdauer:       60 s
+Fade-In:                2 s
+Fade-Out:               3 s
 ```
 
+Der Schlafmodus besitzt eigene Werte für:
 
+- Helligkeit
+- Farbtemperatur
+- Fade-In
+- Fade-Out
+- maximale Leuchtdauer pro Aktivierung
 
-## 🏷️ Version
+Die maximale Leuchtdauer begrenzt eine Schlafmodus-Aktivierung auch dann, wenn weiterhin Bewegung erkannt wird. Eine spätere neue Bewegung kann das Licht erneut aktivieren.
 
-Aktuelle Version: **v1.1.2**
+### 🔒 Dauerlicht
 
-Die Versionsnummer folgt [Semantic Versioning](https://semver.org/):
+Optional kann ein `switch` oder `input_boolean` als Dauerlicht-Override verwendet werden.
 
-- **MAJOR** – inkompatible Änderungen
-- **MINOR** – neue, rückwärtskompatible Funktionen
-- **PATCH** – Fehlerbehebungen und kleine Korrekturen
+Solange dieser aktiv ist:
 
-Für GitHub-Releases empfiehlt sich derselbe Tag, z. B. `v1.1.2`.
+- bleibt das Licht eingeschaltet,
+- die Lux-Prüfung wird ignoriert,
+- Nachlaufzeit und Watchdog dürfen das Licht nicht ausschalten.
 
-## ✨ Funktionsumfang
+Für Dauerlicht stehen eigene Helligkeits-, Farbtemperatur- und Übergangswerte zur Verfügung.
 
-- Ein oder mehrere Bewegungs-/Präsenzsensoren
-- Licht an, sobald mindestens ein ausgewählter Sensor Bewegung meldet
-- Ausschalten erst, wenn nach dem letzten `off`-Ereignis die Nachlaufzeit abgelaufen ist **und alle** ausgewählten Sensoren weiterhin `off` sind
-- Optionaler Helligkeitssensor mit **Tages-Lux-Grenzwert**
-- Konfigurierbare Tageshelligkeit
-- Optionaler Nachtmodus mit eigener Helligkeit und Zeitfenster, auch über Mitternacht
-- Optional konfigurierbare Farbtemperatur in Kelvin für Tag, Nacht, Dauerlicht und Putzmodus
-- Optionaler Dauerlicht-Override
-- Optionaler Putzmodus über `input_button`, standardmäßig 100 % für eine definierte Zeit
-- Optionaler Schalter „Automatik deaktivieren“
-- Restart-Fallback nach Home-Assistant-Neustart
-- Watchdog gegen dauerhaft eingeschaltetes Licht ohne Bewegung
+### 🧹 Putzmodus
 
-## 🧭 Prioritäten
+Optional kann ein `input_button` als Putz-Taster verwendet werden.
 
-Die Logik arbeitet in folgender Priorität:
+Ein Tastendruck:
 
-1. **Automatik deaktiviert** – der Blueprint fasst das Licht überhaupt nicht an.
-2. **Dauerlicht** – das Licht wird aktiv eingeschaltet und nicht automatisch ausgeschaltet.
-3. **Putzmodus** – das Licht läuft zeitlich begrenzt auf 100 %.
-4. **Bewegungsautomatik** – normale Lux-/Tag-/Nacht-Logik.
-5. **Watchdog** – Sicherheitsabschaltung, falls das Licht ohne Bewegung hängen bleibt.
+1. schaltet das Licht auf **100 %**,
+2. verwendet die konfigurierte Putz-Farbtemperatur,
+3. hält den Modus für die eingestellte Dauer aktiv.
 
-## 🚶 Bewegungsmelder
+Ein erneuter Tastendruck startet die Putzzeit erneut.
 
-Im Blueprint können direkt mehrere `binary_sensor`-Entitäten ausgewählt werden. Eine bestehende Home-Assistant-Gruppe kann ebenfalls verwendet werden, sofern sie als geeigneter `binary_sensor` vorliegt.
+### ⛔ Automatik aus
 
-Die Ausschaltlogik verwendet bewusst keinen einfachen `for:`-Trigger pro Sensor. Sobald ein Sensor auf `off` wechselt, startet die Nachlaufzeit. Nach Ablauf wird erneut geprüft, ob **alle** gewählten Bewegungssensoren `off` sind. Neue Bewegung während der Nachlaufzeit verhindert somit das Ausschalten.
+Ein optionaler `switch` oder `input_boolean` kann die komplette Blueprint-Steuerung sperren.
 
-## ☀️ Helligkeitssensor
+Ist dieser Schalter aktiv, verändert der Blueprint weder:
 
-Der Lux-Sensor ist optional und wird **nur im Tagesbetrieb** ausgewertet.
+- Ein/Aus-Zustand,
+- Helligkeit,
+- noch Farbtemperatur.
 
-- Kein Sensor ausgewählt: Lux-Prüfung wird übersprungen.
-- Tagsüber: Das Licht wird bei Bewegung nur eingeschaltet, wenn der Wert unter dem eingestellten Tages-Lux-Grenzwert liegt.
-- Nachtmodus aktiv: Die Lux-Prüfung wird bewusst übersprungen; Bewegung kann das gedimmte Nachtlicht unabhängig vom Lux-Wert einschalten.
-- Sensor liefert tagsüber `unknown` oder `unavailable`: Das Licht wird durch Bewegung nicht eingeschaltet, bis wieder ein gültiger Messwert vorliegt.
+Die Leuchte kann vollständig manuell bedient werden.
 
-Beispiel: Bei `150 lx` als Grenzwert bleibt das Licht tagsüber ab 150 lx aus. Im definierten Nachtzeitfenster greift stattdessen die Nacht-Helligkeit.
+---
 
-## 🌙 Nachtmodus
+## 🥇 Prioritäten
 
-Beispiel:
+Wenn mehrere Funktionen gleichzeitig zutreffen, gilt folgende Reihenfolge:
 
-- Beginn: `22:00`
-- Ende: `06:00`
-- Helligkeit: `20 %`
-- Farbtemperatur: `2500 K`
+1. ⛔ **Automatik aus**
+2. 🔒 **Dauerlicht**
+3. 🧹 **Putzmodus**
+4. 😴 **Schlafmodus**
+5. 🌙 **Nachtmodus**
+6. ☀️ **Normalbetrieb**
+7. 🛡️ **Watchdog**
 
-Zeitfenster über Mitternacht werden unterstützt.
+Schlaf- und Nachtmodus sind dabei zeitabhängige Untermodi der normalen Bewegungssteuerung und keine klassischen manuellen Overrides.
 
-## 🎨 Farbtemperatur
+---
 
-Die Farbtemperatur ist global optional. Aktiviere **Use color temperature** nur für Leuchten, die einstellbares Weiß unterstützen.
+## 🎚️ Fade-In und Fade-Out
 
-Typische Startwerte:
+Jeder relevante Lichtmodus besitzt eigene Übergangszeiten:
 
-| Modus | Helligkeit | Farbtemperatur |
+| Modus | Fade-In | Fade-Out |
 |---|---:|---:|
-| Tag | 100 % | 4000 K |
-| Nacht | 20 % | 2500 K |
-| Dauerlicht | 100 % | 4000 K |
-| Putzmodus | 100 % | 4500 K |
+| ☀️ Normal | ✅ | ✅ |
+| 🌙 Nacht | ✅ | ✅ |
+| 😴 Schlaf | ✅ | ✅ |
+| 🔒 Dauerlicht | ✅ | ✅ |
+| 🧹 Putzmodus | ✅ | ✅ |
 
-Wenn Farbtemperatur deaktiviert ist, werden keine `color_temp_kelvin`-Parameter an `light.turn_on` übergeben.
+`0 s` bedeutet einen unmittelbaren Wechsel ohne Übergang.
 
-## 🔒 Dauerlicht-Override
+Ob und wie sauber Übergänge ausgeführt werden, hängt von der verwendeten Leuchte bzw. Integration ab.
 
-Optional kann ein `input_boolean` oder `switch` gewählt werden. Ist dieser `on`, wird das Licht mit der konfigurierten Override-Helligkeit eingeschaltet. Automatische Ausschaltung und Watchdog werden unterdrückt.
+---
 
-Der Dauerlicht-Override ist **nicht** dasselbe wie „Automatik deaktivieren“: Dauerlicht steuert das Licht aktiv; Automatik deaktivieren lässt das Licht vollständig in Ruhe.
+## 🌡️ Farbtemperatur
 
-## 🧹 Putzmodus
+Die Farbtemperatursteuerung kann global deaktiviert werden. Das ist sinnvoll für reine On/Off- oder dimmbare Leuchten ohne Color-Temperature-Unterstützung.
 
-Optional kann ein `input_button` ausgewählt werden.
+Wenn aktiviert, können separate Kelvin-Werte für folgende Modi definiert werden:
 
-Beim Drücken:
+- Normalbetrieb
+- Nachtmodus
+- Schlafmodus
+- Dauerlicht
+- Putzmodus
 
-1. Licht sofort auf 100 %.
-2. Optional eigene Farbtemperatur.
-3. Nach der konfigurierten Zeit Rückkehr zur normalen Logik.
-4. Ein erneuter Tastendruck verlängert den Modus ab diesem Tastendruck.
+### 💡 Beispielwerte
 
-Der Zustand eines `input_button` enthält den Zeitpunkt der letzten Betätigung. Dadurch kann der Blueprint nach einem Home-Assistant-Neustart prüfen, ob die konfigurierte Putzzeit noch aktiv ist.
+Die folgenden Werte sind nur praxisnahe Startpunkte und können je nach Leuchte und Raum angepasst werden:
 
-## ⏸️ Automatik deaktivieren
+| Modus | Helligkeit | Farbtemperatur | Typischer Eindruck |
+|---|---:|---:|---|
+| ☀️ Normal | 80–100 % | 3500–4500 K | neutral / funktional |
+| 🌙 Nacht | 10–30 % | 2400–2700 K | warm und zurückhaltend |
+| 😴 Schlaf | 1–10 % | 2000–2300 K | sehr warm, möglichst wenig störend |
+| 🔒 Dauerlicht | 80–100 % | 3500–4500 K | normaler Raumkomfort |
+| 🧹 Putzmodus | 100 % | 4000–5000 K | hell und funktional |
 
-Optional kann ein `input_boolean` oder `switch` gewählt werden. Solange er `on` ist, beendet der Blueprint jede ausgelöste Ausführung sofort und verändert weder Zustand noch Helligkeit oder Farbe des Lichts.
+Wenn **Farbtemperatur verwenden** deaktiviert ist, werden keine `color_temp_kelvin`-Werte an die Leuchte gesendet.
 
-Beim späteren Ausschalten dieses Schalters wird kein Lichtzustand erzwungen. Die Automatik reagiert wieder auf die nächsten normalen Ereignisse.
+---
 
-## 🔄 Restart-Fallback
+## 🔄 Verhalten nach Home-Assistant-Neustart
 
-Laufende Verzögerungen einer Automation sind nicht als persistenter Timer zu betrachten. Deshalb prüft der Blueprint beim Start von Home Assistant nach einer konfigurierbaren Initialisierungszeit:
+Laufende Verzögerungen können bei einem Neustart verloren gehen. Deshalb enthält der Blueprint einen zusätzlichen Start-Fallback.
 
-- Automatik deaktiviert → nichts tun
-- Dauerlicht aktiv → Dauerlicht wieder anwenden
-- Putzmodus noch aktiv → Putzmodus anhand des letzten Button-Zeitpunkts wiederherstellen
-- Licht an + keine Bewegung → neue Sicherheits-Nachlaufzeit starten und danach erneut prüfen
+Nach dem Start:
 
-Dadurch bleibt ein Licht nach einem Neustart nicht unbegrenzt eingeschaltet, nur weil eine vorher laufende Ausschaltverzögerung verloren gegangen ist.
+1. wartet der Blueprint eine konfigurierbare Initialisierungszeit,
+2. berücksichtigt Dauerlicht und einen noch laufenden Putzmodus,
+3. prüft bei eingeschaltetem Licht die Bewegungsmelder,
+4. startet bei fehlender Bewegung eine neue Sicherheits-Nachlaufzeit.
+
+Dadurch soll ein vor dem Neustart eingeschaltetes Licht nicht unbegrenzt eingeschaltet bleiben.
+
+---
 
 ## 🛡️ Watchdog
 
-Der Watchdog prüft alle fünf Minuten. Er schaltet das Licht nur aus, wenn:
+Der Watchdog prüft periodisch, ob ein Licht ungewöhnlich lange eingeschaltet ist, obwohl keine Bewegung erkannt wird.
 
-- das Licht `on` ist,
-- alle Bewegungssensoren `off` sind,
-- Dauerlicht nicht aktiv ist,
-- kein Putzmodus aktiv ist,
-- „Automatik deaktivieren“ nicht aktiv ist,
-- und das Licht länger als die Watchdog-Zeit eingeschaltet ist.
+Er greift **nicht** ein, wenn:
 
-**Hinweis:** Damit kann auch ein manuell eingeschaltetes Licht automatisch ausgeschaltet werden. Wenn manuell gesteuertes Licht unangetastet bleiben soll, vorher „Automatik deaktivieren“ verwenden.
+- Automatik aus aktiv ist,
+- Dauerlicht aktiv ist,
+- oder der Putzmodus noch läuft.
 
-## 📦 Installation
+---
 
-Lege die Blueprint-Datei z. B. hier ab:
+## ⚙️ Benötigte Entitäten
 
-```text
-/config/blueprints/automation/<dein_name>/motion_light_plus.yaml
-```
+### Pflicht
 
-Danach in Home Assistant:
+- mindestens ein `binary_sensor` für Bewegung oder Präsenz
+- eine `light`-Entity
 
-1. **Einstellungen → Automatisierungen & Szenen → Blueprints** öffnen.
-2. Blueprint neu laden bzw. Home Assistant die Datei erkennen lassen.
-3. **Automation erstellen** wählen.
-4. Mindestens Bewegungsmelder und Licht konfigurieren.
-5. Optionale Funktionen nur dann belegen, wenn sie benötigt werden.
+### Optional
+
+- `sensor` mit `device_class: illuminance`
+- `input_boolean` oder `switch` für Dauerlicht
+- `input_button` für Putzmodus
+- `input_boolean` oder `switch` für „Automatik aus“
+
+---
 
 ## 🧩 Empfohlene Helper
 
-Für alle optionalen Funktionen sind normale Home-Assistant-Helper ausreichend:
+Die optionalen Override-Funktionen benötigen keine speziellen Integrationen. Normale Home-Assistant-Helper reichen aus.
+
+Für einen Flur könnten beispielsweise folgende Helper angelegt werden:
 
 ```text
 input_boolean.flur_dauerlicht
@@ -188,41 +259,146 @@ input_boolean.flur_automatik_aus
 input_button.flur_putzen
 ```
 
-Es ist nicht notwendig, alle drei anzulegen.
+Bedeutung:
 
-## ⚙️ Beispielkonfiguration
+- 🔒 `input_boolean.flur_dauerlicht` – hält das Licht dauerhaft eingeschaltet.
+- ⛔ `input_boolean.flur_automatik_aus` – der Blueprint greift überhaupt nicht mehr in das Licht ein.
+- 🧹 `input_button.flur_putzen` – startet den zeitlich begrenzten Putzmodus.
 
-Für einen Flur könnte eine Instanz etwa so eingestellt werden:
+Es ist **nicht notwendig, alle Helper anzulegen**. Nicht benötigte Funktionen können im Blueprint einfach leer bleiben.
+
+---
+
+## ⚙️ Gesamte Beispielkonfiguration
+
+Beispiel für einen Flur mit zwei Bewegungsmeldern, Lux-Sensor, Nacht- und Schlafmodus:
 
 ```text
-Bewegungsmelder:        PIR Eingang + PIR Gang
-Licht:                  light.flur
-Lux-Sensor:             sensor.flur_illuminance
-Tages-Lux-Grenze:      80 lx
-Tag-Helligkeit:         100 %
-Nachtzeit:              22:00–06:00
-Nacht-Helligkeit:       20 %
-Farbtemperatur:         aktiviert
-Tag:                     4000 K
-Nacht:                   2500 K
-Nachlaufzeit:           180 s
-Restart-Wartezeit:      30 s
-Watchdog:               900 s
-Dauerlicht:             input_boolean.flur_dauerlicht
-Putzmodus:              input_button.flur_putzen
-Putzdauer:              1800 s
-Automatik deaktivieren: input_boolean.flur_automatik_aus
+Geräte
+  Bewegungsmelder:        binary_sensor.flur_eingang
+                           binary_sensor.flur_gang
+  Licht:                  light.flur
+  Helligkeitssensor:      sensor.flur_illuminance
+
+Normalbetrieb
+  Lux-Grenzwert:          120 lx
+  Helligkeit:             100 %
+  Farbtemperatur:         4000 K
+  Fade-In:                1 s
+  Fade-Out:               2 s
+
+Farbtemperatur
+  Verwenden:              Ja
+
+Nachtmodus
+  Aktiv:                  Ja
+  Zeit:                   22:00 – 06:00
+  Helligkeit:             20 %
+  Farbtemperatur:         2500 K
+  Fade-In:                1 s
+  Fade-Out:               2 s
+
+Schlafmodus
+  Aktiv:                  Ja
+  Zeit:                   23:30 – 05:30
+  Helligkeit:             5 %
+  Farbtemperatur:         2200 K
+  Max. Leuchtdauer:       60 s
+  Fade-In:                2 s
+  Fade-Out:               3 s
+
+Bewegung & Sicherheit
+  Nachlaufzeit:           180 s
+  Restart-Wartezeit:      30 s
+  Watchdog:               900 s
+
+Dauerlicht
+  Schalter:               input_boolean.flur_dauerlicht
+  Helligkeit:             100 %
+  Farbtemperatur:         4000 K
+  Fade-In:                1 s
+  Fade-Out:               2 s
+
+Putzmodus
+  Taster:                 input_button.flur_putzen
+  Dauer:                  1800 s
+  Farbtemperatur:         4500 K
+  Fade-In:                1 s
+  Fade-Out:               2 s
+
+Automatik
+  Deaktivieren:           input_boolean.flur_automatik_aus
 ```
 
-## 🔧 Technische Hinweise
+### 🕒 Beispielhafter Tagesablauf
 
-Der Blueprint verwendet Input Sections und benötigt deshalb Home Assistant `2024.6.0` oder neuer.
+```text
+07:00 – 21:59   Normalbetrieb
+                → Lux-Sensor wird berücksichtigt
 
-`light.turn_on` verwendet `brightness_pct` und optional `color_temp_kelvin`. Nicht jede Leuchte unterstützt Farbtemperatur; in diesem Fall die Farbtemperatur-Funktion deaktiviert lassen.
+22:00 – 23:29   Nachtmodus
+                → 20 %, 2500 K
 
-Die Automation läuft mit `mode: parallel`. Das ist absichtlich so gewählt: Mehrere Sensorereignisse und Sicherheitsprüfungen dürfen gleichzeitig laufen. Vor jeder automatischen Abschaltung werden Bewegung und Overrides erneut geprüft.
+23:30 – 05:29   Schlafmodus
+                → 5 %, 2200 K, max. 60 s je Aktivierung
 
-## 📁 Dateien
+05:30 – 05:59   Nachtmodus
+                → wieder 20 %, 2500 K
 
-- `motion_light_plus.yaml` – Blueprint
-- `README.md` – Dokumentation
+ab 06:00        Normalbetrieb
+                → Lux-Sensor wird wieder berücksichtigt
+```
+
+---
+
+## 📥 Import in Home Assistant
+
+Repository:
+
+```text
+https://github.com/vandecook/motion-light-plus
+```
+
+Blueprint:
+
+```text
+https://github.com/vandecook/motion-light-plus/blob/main/blueprints/automation/motion_light_plus.yaml
+```
+
+Raw URL:
+
+```text
+https://raw.githubusercontent.com/vandecook/motion-light-plus/main/blueprints/automation/motion_light_plus.yaml
+```
+
+Nach dem Import wird aus dem Blueprint eine normale Home-Assistant-Automation erstellt. Für jede Instanz kann dabei ein eigener Name bzw. Alias vergeben werden, beispielsweise:
+
+- `Flur Bewegungslicht`
+- `WC Bewegungslicht`
+- `Keller Bewegungslicht`
+
+---
+
+## 🇬🇧 English summary
+
+Motion Light Plus controls a light using one or more motion/presence sensors. An optional lux sensor can suppress switching during daytime. Night and sleep modes provide dedicated brightness, color temperature and transitions. Sleep mode can additionally limit the maximum light-on duration per activation.
+
+Optional manual modes include continuous light, cleaning mode and a complete automation lockout. A restart fallback and watchdog provide additional protection against a light remaining on unintentionally.
+
+Priority:
+
+```text
+Automation off
+→ Continuous light
+→ Cleaning mode
+→ Sleep mode
+→ Night mode
+→ Normal motion mode
+→ Watchdog
+```
+
+---
+
+## 📄 License
+
+Use and modification are permitted according to the license provided with the repository.
