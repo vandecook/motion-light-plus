@@ -1,5 +1,5 @@
 # Motion Light Plus
-# Version: 1.2.1
+# Version: 1.2.2
 # Repository: https://github.com/vandecook/motion-light-plus
 #
 # Home Assistant automation blueprint for motion-controlled lighting.
@@ -10,6 +10,8 @@ blueprint:
   name: Motion Light Plus
   description: >-
     💡 Motion Light Plus – flexible motion-controlled lighting for Home Assistant.
+
+    🏷️ Version: 1.2.2
 
     🇩🇪 DEUTSCH
     Schaltet ein Licht über einen oder mehrere Bewegungs-/Präsenzmelder und
