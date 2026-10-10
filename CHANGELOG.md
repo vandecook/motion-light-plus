@@ -1,6 +1,48 @@
 # Changelog
 
-Alle relevanten Änderungen an diesem Blueprint werden hier dokumentiert.
+Alle relevanten Änderungen an **Motion Light Plus** werden hier dokumentiert.
+
+Das Projekt verwendet [Semantic Versioning](https://semver.org/).
+
+## [1.2.0] - 2026-10-10
+
+### Hinzugefügt
+
+- Neuer optionaler **Schlafmodus** als Untermodus des Nachtmodus
+- Eigenes Schlafmodus-Zeitfenster innerhalb des Nachtmodus
+- Eigene Helligkeit für den Schlafmodus
+- Eigene Farbtemperatur für den Schlafmodus
+- Eigene Fade-In- und Fade-Out-Zeiten für den Schlafmodus
+- Konfigurierbare maximale Leuchtdauer pro Aktivierung im Schlafmodus
+- Erneute Aktivierung des Schlafmodus durch eine neue Bewegung nach Ablauf der maximalen Leuchtdauer
+- Konfigurierbare **Fade-In- und Fade-Out-Zeiten für alle relevanten Betriebsmodi**:
+  - Normalbetrieb
+  - Nachtmodus
+  - Schlafmodus
+  - Dauerlicht
+  - Putzmodus
+- Erweiterte README mit:
+  - empfohlenen Farbtemperaturen
+  - empfohlenen Home-Assistant-Helpern
+  - vollständiger Beispielkonfiguration
+  - Nachtmodus-Beispiel
+  - Schlafmodus-Beispiel
+  - beispielhaftem Tagesablauf
+- Separate `REQUIREMENTS.md` mit nummerierten Anforderungen
+
+### Geändert
+
+- Betriebspriorität um Schlafmodus erweitert:
+  1. Automatik aus
+  2. Dauerlicht
+  3. Putzmodus
+  4. Schlafmodus
+  5. Nachtmodus
+  6. Normalbetrieb
+  7. Watchdog
+- Nacht- und Schlafmodus werden als zeitabhängige Untermodi der Bewegungsautomatik behandelt
+- Lux-Prüfung bleibt auf den normalen Tagesbetrieb beschränkt
+- README an den erweiterten Funktionsumfang angepasst
 
 ## [1.1.2] - 2026-08-26
 
