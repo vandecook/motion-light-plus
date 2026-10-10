@@ -4,6 +4,20 @@ Alle relevanten Änderungen an **Motion Light Plus** werden hier dokumentiert.
 
 Das Projekt verwendet [Semantic Versioning](https://semver.org/).
 
+## [1.2.1] - 2026-10-10
+
+### Behoben
+
+- Globalen ungefilterten `state_changed`-Trigger entfernt, der zuvor auf jede Zustandsänderung in Home Assistant reagierte
+- Dauerlicht-Override reagiert jetzt nur noch auf Änderungen der tatsächlich konfigurierten Override-Entity
+- Putzmodus reagiert jetzt nur noch auf Änderungen des tatsächlich konfigurierten `input_button`
+- Dadurch deutlich weniger unnötige Automation-Ausführungen und geringere Last auf dem Home-Assistant-Event-Loop
+
+### Geändert
+
+- Versionsangabe des Blueprints auf `1.2.1` aktualisiert
+- README um einen Hinweis zum Ereignis- und Performance-Verhalten ergänzt
+
 ## [1.2.0] - 2026-10-10
 
 ### Hinzugefügt

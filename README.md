@@ -2,7 +2,7 @@
 
 A flexible but deliberately compact **Home Assistant motion-light blueprint** for rooms where a simple motion trigger is not quite enough.
 
-**Version:** `1.2.0`  
+**Version:** `1.2.1`  
 **Repository:** `vandecook/motion-light-plus`
 
 ---
@@ -54,21 +54,7 @@ Der Nachtmodus besitzt ein eigenes Zeitfenster und eigene Werte für:
 - Fade-In
 - Fade-Out
 
-Zeitfenster über Mitternacht, beispielsweise `22:00 – 06:00`, werden unterstützt. Die Lux-Prüfung wird im Nachtmodus bewusst ignoriert.
-
-**Beispiel:**
-
-```text
-Nachtmodus aktiv:       Ja
-Beginn:                 22:00
-Ende:                   06:00
-Helligkeit:             20 %
-Farbtemperatur:         2500 K
-Fade-In:                1 s
-Fade-Out:               2 s
-```
-
-Damit wird bei Bewegung zwischen 22:00 und 06:00 Uhr unabhängig vom Lux-Wert mit reduziertem, wärmerem Licht eingeschaltet.
+Zeitfenster über Mitternacht, beispielsweise `22:00 – 06:00`, werden unterstützt.
 
 ### 😴 Schlafmodus
 
@@ -79,19 +65,6 @@ Das Schlaf-Zeitfenster sollte vollständig innerhalb des Nacht-Zeitfensters lieg
 ```text
 Nachtmodus:  22:00 – 06:00
 Schlafmodus: 23:30 – 05:30
-```
-
-**Beispielkonfiguration Schlafmodus:**
-
-```text
-Schlafmodus aktiv:      Ja
-Beginn:                 23:30
-Ende:                   05:30
-Helligkeit:             5 %
-Farbtemperatur:         2200 K
-Max. Leuchtdauer:       60 s
-Fade-In:                2 s
-Fade-Out:               3 s
 ```
 
 Der Schlafmodus besitzt eigene Werte für:
@@ -188,19 +161,32 @@ Wenn aktiviert, können separate Kelvin-Werte für folgende Modi definiert werde
 - Dauerlicht
 - Putzmodus
 
-### 💡 Beispielwerte
+### 💡 Orientierung für Kelvin-Werte
 
-Die folgenden Werte sind nur praxisnahe Startpunkte und können je nach Leuchte und Raum angepasst werden:
+| Farbtemperatur | Wirkung | Typische Verwendung |
+|---:|---|---|
+| **2000–2200 K** | sehr warm, amberartig | Schlafmodus, nächtliche Orientierung |
+| **2400–2700 K** | warmweiß | Nachtmodus, gemütliche Beleuchtung |
+| **3000 K** | warmweiß bis neutral | Wohnräume |
+| **3500–4000 K** | neutralweiß | Normalbetrieb, Flur, Küche |
+| **4500–5000 K** | eher kühl und klar | Putzmodus, Arbeitslicht |
+| **5500–6500 K** | tageslichtweiß | sehr helles Funktionslicht |
 
-| Modus | Helligkeit | Farbtemperatur | Typischer Eindruck |
-|---|---:|---:|---|
-| ☀️ Normal | 80–100 % | 3500–4500 K | neutral / funktional |
-| 🌙 Nacht | 10–30 % | 2400–2700 K | warm und zurückhaltend |
-| 😴 Schlaf | 1–10 % | 2000–2300 K | sehr warm, möglichst wenig störend |
-| 🔒 Dauerlicht | 80–100 % | 3500–4500 K | normaler Raumkomfort |
-| 🧹 Putzmodus | 100 % | 4000–5000 K | hell und funktional |
+### 🏠 Beispielkonfiguration
 
-Wenn **Farbtemperatur verwenden** deaktiviert ist, werden keine `color_temp_kelvin`-Werte an die Leuchte gesendet.
+Eine mögliche Abstimmung für einen Flur wäre:
+
+| Modus | Helligkeit | Farbtemperatur |
+|---|---:|---:|
+| ☀️ Normalbetrieb | 100 % | 4000 K |
+| 🌙 Nachtmodus | 20 % | 2500 K |
+| 😴 Schlafmodus | 5 % | 2200 K |
+| 🔒 Dauerlicht | 100 % | 4000 K |
+| 🧹 Putzmodus | 100 % | 4500 K |
+
+Die Werte sind nur Ausgangspunkte. Je nach Leuchte unterscheiden sich wahrgenommene Helligkeit und Farbtemperatur deutlich.
+
+> **Hinweis:** Manche Leuchten unterstützen nur einen eingeschränkten Kelvin-Bereich. In diesem Fall müssen die Werte innerhalb des von der jeweiligen `light`-Entity unterstützten Bereichs gewählt werden.
 
 ---
 
@@ -216,6 +202,14 @@ Nach dem Start:
 4. startet bei fehlender Bewegung eine neue Sicherheits-Nachlaufzeit.
 
 Dadurch soll ein vor dem Neustart eingeschaltetes Licht nicht unbegrenzt eingeschaltet bleiben.
+
+---
+
+## ⚡ Ereignis- und Performance-Verhalten
+
+Optionale Eingänge wie Dauerlicht und Putz-Taster werden **gezielt nach Entity-ID gefiltert**. Der Blueprint lauscht nicht global auf alle `state_changed`-Events von Home Assistant.
+
+Dadurch erzeugen häufig aktualisierte Sensoren, Leistungswerte, MQTT-Entitäten oder andere Zustandsänderungen keine unnötigen Ausführungen dieser Automation.
 
 ---
 
@@ -244,110 +238,6 @@ Er greift **nicht** ein, wenn:
 - `input_boolean` oder `switch` für Dauerlicht
 - `input_button` für Putzmodus
 - `input_boolean` oder `switch` für „Automatik aus“
-
----
-
-## 🧩 Empfohlene Helper
-
-Die optionalen Override-Funktionen benötigen keine speziellen Integrationen. Normale Home-Assistant-Helper reichen aus.
-
-Für einen Flur könnten beispielsweise folgende Helper angelegt werden:
-
-```text
-input_boolean.flur_dauerlicht
-input_boolean.flur_automatik_aus
-input_button.flur_putzen
-```
-
-Bedeutung:
-
-- 🔒 `input_boolean.flur_dauerlicht` – hält das Licht dauerhaft eingeschaltet.
-- ⛔ `input_boolean.flur_automatik_aus` – der Blueprint greift überhaupt nicht mehr in das Licht ein.
-- 🧹 `input_button.flur_putzen` – startet den zeitlich begrenzten Putzmodus.
-
-Es ist **nicht notwendig, alle Helper anzulegen**. Nicht benötigte Funktionen können im Blueprint einfach leer bleiben.
-
----
-
-## ⚙️ Gesamte Beispielkonfiguration
-
-Beispiel für einen Flur mit zwei Bewegungsmeldern, Lux-Sensor, Nacht- und Schlafmodus:
-
-```text
-Geräte
-  Bewegungsmelder:        binary_sensor.flur_eingang
-                           binary_sensor.flur_gang
-  Licht:                  light.flur
-  Helligkeitssensor:      sensor.flur_illuminance
-
-Normalbetrieb
-  Lux-Grenzwert:          120 lx
-  Helligkeit:             100 %
-  Farbtemperatur:         4000 K
-  Fade-In:                1 s
-  Fade-Out:               2 s
-
-Farbtemperatur
-  Verwenden:              Ja
-
-Nachtmodus
-  Aktiv:                  Ja
-  Zeit:                   22:00 – 06:00
-  Helligkeit:             20 %
-  Farbtemperatur:         2500 K
-  Fade-In:                1 s
-  Fade-Out:               2 s
-
-Schlafmodus
-  Aktiv:                  Ja
-  Zeit:                   23:30 – 05:30
-  Helligkeit:             5 %
-  Farbtemperatur:         2200 K
-  Max. Leuchtdauer:       60 s
-  Fade-In:                2 s
-  Fade-Out:               3 s
-
-Bewegung & Sicherheit
-  Nachlaufzeit:           180 s
-  Restart-Wartezeit:      30 s
-  Watchdog:               900 s
-
-Dauerlicht
-  Schalter:               input_boolean.flur_dauerlicht
-  Helligkeit:             100 %
-  Farbtemperatur:         4000 K
-  Fade-In:                1 s
-  Fade-Out:               2 s
-
-Putzmodus
-  Taster:                 input_button.flur_putzen
-  Dauer:                  1800 s
-  Farbtemperatur:         4500 K
-  Fade-In:                1 s
-  Fade-Out:               2 s
-
-Automatik
-  Deaktivieren:           input_boolean.flur_automatik_aus
-```
-
-### 🕒 Beispielhafter Tagesablauf
-
-```text
-07:00 – 21:59   Normalbetrieb
-                → Lux-Sensor wird berücksichtigt
-
-22:00 – 23:29   Nachtmodus
-                → 20 %, 2500 K
-
-23:30 – 05:29   Schlafmodus
-                → 5 %, 2200 K, max. 60 s je Aktivierung
-
-05:30 – 05:59   Nachtmodus
-                → wieder 20 %, 2500 K
-
-ab 06:00        Normalbetrieb
-                → Lux-Sensor wird wieder berücksichtigt
-```
 
 ---
 
