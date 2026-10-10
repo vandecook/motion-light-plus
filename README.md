@@ -2,7 +2,7 @@
 
 A flexible but deliberately compact **Home Assistant motion-light blueprint** for rooms where a simple motion trigger is not quite enough.
 
-**Version:** `1.2.1`  
+**Version:** `1.2.2`  
 **Repository:** `vandecook/motion-light-plus`
 
 ---

@@ -4,6 +4,13 @@ Alle relevanten Änderungen an **Motion Light Plus** werden hier dokumentiert.
 
 Das Projekt verwendet [Semantic Versioning](https://semver.org/).
 
+## [1.2.2] - 2026-10-10
+
+### Geändert
+
+- Versionsnummer zusätzlich direkt in der sichtbaren Blueprint-Beschreibung ergänzt
+- Versionsangaben in Blueprint und README auf `1.2.2` synchronisiert
+
 ## [1.2.1] - 2026-10-10
 
 ### Behoben
